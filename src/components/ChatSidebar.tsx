@@ -1,5 +1,5 @@
 import { Moon, Plus, Sun } from "lucide-react";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import {
   SidebarContent,
@@ -19,20 +19,16 @@ import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { db } from "~/lib/dexie";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Link, useLocation } from "react-router";
 
-const chatGroups = [
-  { id: "1", name: "React Basics" },
-  { id: "2", name: "AI Ethics" },
-  { id: "3", name: "Climate Change" },
-  { id: "4", name: "JavaScript Tips" },
-  { id: "5", name: "Machine Learning Intro" },
-];
 
 export const ChatSidebar = () => {
-  const [activeChat, setActiveChat] = useState<string | null>(null);
+  const [activeThread, setActiveThread] = useState("");
   const [dialogIsOpen, setDialogIsOpen] = useState(false);
-  const [textInput, setTextInput] = useState("")
+  const [textInput, setTextInput] = useState("");
   const { setTheme, theme } = useTheme();
+
+  const location = useLocation();
 
   const threads = useLiveQuery(() => db.getAllThreads(), []);
 
@@ -50,6 +46,10 @@ export const ChatSidebar = () => {
     setTextInput("")
   }
 
+  useLayoutEffect(() => {
+    setActiveThread(location.pathname.split("/")[2])
+  }, [location.pathname])
+
   return (
     <>
       <Dialog open={dialogIsOpen} onOpenChange={setDialogIsOpen}>
@@ -61,18 +61,18 @@ export const ChatSidebar = () => {
           </DialogHeader>
           <div className="space-y-1">
             <Label htmlFor="thread-title">Thread Title</Label>
-            <Input id="thread-title" value={textInput} onChange={(e)=> setTextInput(e.target.value)}
-            placeholder="Your new thread title"/>
+            <Input id="thread-title" value={textInput} onChange={(e) => setTextInput(e.target.value)}
+              placeholder="Your new thread title" />
           </div>
           <DialogFooter>
             <Button onClick={handleCreateThread} >Create Thread</Button>
-            <Button variant={"secondary"} onClick={()=> setDialogIsOpen(false)}>Cancel</Button>
+            <Button variant={"secondary"} onClick={() => setDialogIsOpen(false)}>Cancel</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       <SidebarPrimitive>
         <SidebarHeader>
-          <Button onClick={()=> setDialogIsOpen(true)} className="w-full justify-start" variant="ghost">
+          <Button onClick={() => setDialogIsOpen(true)} className="w-full justify-start" variant="ghost">
             <Plus className="mr-2 h-4 w-4" />
             New Chat
           </Button>
@@ -84,12 +84,11 @@ export const ChatSidebar = () => {
               <SidebarMenu>
                 {threads?.map((thread) => (
                   <SidebarMenuItem key={thread.id}>
-                    <SidebarMenuButton
-                      onClick={() => setActiveChat(thread.id)}
-                      isActive={activeChat === thread.id}
-                    >
-                      {thread.title}
-                    </SidebarMenuButton>
+                    <Link to={`/thread/${thread.id}`}>
+                      <SidebarMenuButton isActive={thread.id === activeThread} >
+                        {thread.title}
+                      </SidebarMenuButton>
+                    </Link>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
