@@ -1,35 +1,23 @@
-
 import { ChatMessage } from "~/components/ChatMessage"
 import { Button } from "~/components/ui/button"
 import { Textarea } from "~/components/ui/textarea"
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Menu } from "lucide-react";
 import ollama from "ollama";
 import { ThoughtMessage } from "~/components/ThoughtMessage";
 import { useParams } from "react-router";
 import { db } from "~/lib/dexie";
+import { useLiveQuery } from "dexie-react-hooks";
 
-type Message = {
-  role: "user" | "assistant";
-  content: string;
-};
-
-const chatHistory: Message[] = [
-  { role: "assistant", content: "Hello! How can I assist you today?" },
-  { role: "user", content: "Can you explain what React is?" },
-  {
-    role: "assistant",
-    content:
-      "React is a popular JavaScript library for building user interfaces. It was developed by Facebook and is widely used for creating interactive, efficient, and reusable UI components. React uses a virtual DOM (Document Object Model) to improve performance by minimizing direct manipulation of the actual DOM. It also introduces JSX, a syntax extension that allows you to write HTML-like code within JavaScript.",
-  },
-];
 
 const ChatPages = () => {
   const [messageInput, setMessageInput] = useState("");
   const [streamedMessage, setStreamedMessage] = useState("");
   const [streamedThought, setStreamedThought] = useState("");
-
+  const scrollToBottomRef = useRef<HTMLDivElement>(null);
   const params = useParams();
+
+  const messages = useLiveQuery(() => db.getMessagesForThread(params.threadId as string), [params.threadId])
 
   const handleSubmit = async () => {
     await db.createMessage({
@@ -38,6 +26,8 @@ const ChatPages = () => {
       thought: "",
       thread_id: params.threadId as string,
     })
+
+    setMessageInput("");
 
     const stream = await ollama.chat({
       model: "deepseek-r1:1.5b",
@@ -78,12 +68,23 @@ const ChatPages = () => {
     }
 
     await db.createMessage({
-      content : fullContent,
+      content: fullContent,
       role: "assistant",
       thought: fullThought,
       thread_id: params.threadId as string,
     })
+
+    setStreamedMessage("");
+    setStreamedThought("");
   };
+
+  const handleScrollToBottom = () => {
+    scrollToBottomRef.current?.scrollIntoView()
+  }
+
+  useLayoutEffect(() => {
+    handleScrollToBottom()
+  }, [messages, streamedMessage, streamedThought])
 
   return (
     <div className="flex flex-col flex-1">
@@ -99,11 +100,12 @@ const ChatPages = () => {
       </header>
       <main className="flex-1 overflow-auto p-4 w-full">
         <div className="mx-auto space-y-4 pb-20 max-w-screen-md">
-          {chatHistory.map((message, index) => (
+          {messages?.map((message, index) => (
             <ChatMessage
               key={index}
               role={message.role}
               content={message.content}
+              thought={message.thought}
             />
           ))}
           {
@@ -119,6 +121,7 @@ const ChatPages = () => {
               />
             )
           }
+          <div ref={scrollToBottomRef} />
         </div>
       </main>
       <footer className="border-t p-4">

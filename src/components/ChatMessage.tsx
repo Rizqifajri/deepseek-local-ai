@@ -1,9 +1,11 @@
 
 import ReactMarkdown from "react-markdown";
+import { ThoughtMessage } from "./ThoughtMessage";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
   content: string;
+  thought?: string;
 }
 
 export const ChatMessage = (props: ChatMessageProps) => {
@@ -11,6 +13,8 @@ export const ChatMessage = (props: ChatMessageProps) => {
 
 
   return (
+    <>
+    {!!props.thought && <ThoughtMessage thought={props.thought} />}
     <div
       className={`flex items-start gap-4 ${
         isAssistant ? "flex-row" : "flex-row-reverse"
@@ -26,5 +30,7 @@ export const ChatMessage = (props: ChatMessageProps) => {
         <ReactMarkdown className={`${isAssistant ? "prose dark:prose-invert" : ""}`} >{props.content.trim()}</ReactMarkdown>
       </div>
     </div>
+    </>
+    
   );
 };

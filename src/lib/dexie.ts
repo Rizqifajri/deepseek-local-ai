@@ -1,4 +1,5 @@
 import Dexie, { Table } from "dexie";
+import { threadId } from "worker_threads";
 
 interface DEX_Tread {
   id: string;
@@ -34,9 +35,7 @@ class ChatDB extends Dexie {
       obj.updated_at = new Date();
     });
 
-    this.messages.hook("creating", (_, obj) => [
-      obj.created_at = new Date(),
-    ])
+    this.messages.hook("creating", (_, obj) => [(obj.created_at = new Date())]);
   }
 
   async createThread(title: string) {
@@ -54,7 +53,7 @@ class ChatDB extends Dexie {
     return this.threads.reverse().sortBy("updated_at");
   }
   async createMessage(
-    messsage: Pick<DEX_Message, "content" | "role" | "thread_id" | "thought" >
+    messsage: Pick<DEX_Message, "content" | "role" | "thread_id" | "thought">
   ) {
     const messsageId = crypto.randomUUID();
 
@@ -66,11 +65,18 @@ class ChatDB extends Dexie {
         updated_at: new Date(),
       });
 
-      await this.messages.update( messsage.thread_id, {
-        updated_at: new Date()
-      })
+      await this.messages.update(messsage.thread_id, {
+        updated_at: new Date(),
+      });
     });
     return messsageId;
+  }
+
+  async getMessagesForThread(threadId: string) {
+    return this.messages
+      .where("thread_id")
+      .equals(threadId)
+      .sortBy("created_at");
   }
 }
 
